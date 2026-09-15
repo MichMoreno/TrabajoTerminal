@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Test - ESCOM</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #1a237e; border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
+        .status { padding: 10px; border-radius: 8px; margin: 10px 0; font-weight: bold; }
+        .status-conectado { background: #e8f5e9; color: #2e7d32; }
+        .status-error { background: #ffebee; color: #c62828; }
+        .grupo { margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .grupo h3 { margin-top: 0; color: #37474f; }
+        input { padding: 10px; margin: 5px 5px 5px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        input[type="text"] { width: 200px; }
+        button { padding: 10px 20px; margin: 5px 5px 5px 0; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-primary:hover { background: #388E3C; }
+        .btn-secondary { background: #2196F3; color: white; }
+        .btn-secondary:hover { background: #1976D2; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        .btn-success:hover { background: #388E3C; }
+        .mensajes { border: 1px solid #ddd; padding: 15px; min-height: 250px; max-height: 400px; overflow-y: auto; margin-top: 10px; border-radius: 8px; background: #fafafa; }
+        .mensaje { padding: 10px; margin: 5px 0; border-radius: 8px; background: #e3f2fd; border-left: 4px solid #2196F3; }
+        .mensaje-propio { background: #e8f5e9; border-left-color: #4CAF50; }
+        .no-leido { background: #fff3cd; border-left-color: #ff9800; }
+        .leido { background: #e8f5e9; border-left-color: #4CAF50; opacity: 0.8; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: white; }
+        .badge-success { background: #4CAF50; }
+        .badge-warning { background: #ff9800; }
+        .badge-danger { background: #f44336; }
+        .log { background: #263238; color: #aed581; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 150px; overflow-y: auto; margin-top: 10px; }
+        .log-entry { padding: 2px 0; border-bottom: 1px solid #37474f; }
+        .log-time { color: #78909c; }
+        .flex { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .chat-con { font-size: 14px; color: #666; padding: 8px 12px; background: #e3f2fd; border-radius: 5px; margin-bottom: 10px; border-left: 3px solid #2196F3; }
+        .receptor-sugerido { font-size: 12px; color: #999; margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat en Tiempo Real - ESCOM</h1>
+        
+        <div id="status" class="status status-error">Desconectado - Conectando...</div>
+        
+        <!-- Registro -->
+        <div class="grupo">
+            <h3>Registro de Usuario</h3>
+            <div class="flex">
+                <input id="boleta" placeholder="Boleta" value="2024630003">
+                <input id="nombre" placeholder="Nombre" value="Carlos López">
+                <button class="btn-primary" onclick="registrar()">Registrar</button>
+                <span id="registro-status" style="font-size: 14px; color: #666;"></span>
+            </div>
+        </div>
+        
+        <!-- Enviar mensaje -->
+        <div class="grupo">
+            <h3>Enviar Mensaje</h3>
+            <div class="flex">
+                <input id="receptor" placeholder="Receptor (boleta)" value="2024630004">
+                <input id="mensaje" placeholder="Escribe tu mensaje..." style="flex:1; min-width:200px;">
+                <button class="btn-secondary" onclick="enviarMensaje()">Enviar</button>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button class="btn-success" onclick="abrirChatCon(document.getElementById('receptor').value.trim())">
+                    Abrir Chat
+                </button>
+                <button class="btn-secondary" onclick="obtenerNoLeidos()">Obtener no leídos</button>
+                <span style="font-size: 12px; color: #666;">
+                    (Los mensajes se marcan como leídos al abrir el chat)
+                </span>
+            </div>
+        </div>
+        
+        <!-- Chat con -->
+        <div id="chat-con" class="chat-con">
+            Selecciona un chat para comenzar
+        </div>
+        
+        <!-- Mensajes -->
+        <div class="grupo">
+            <h3>Mensajes Recibidos</h3>
+            <div id="mensajes" class="mensajes">
+                <p style="color: #999; text-align: center;">Los mensajes aparecerán aquí...</p>
+            </div>
+        </div>
+        
+        <!-- Log -->
+        <div class="grupo">
+            <h3>Log de Conexión</h3>
+            <button class="btn-danger" onclick="limpiarLog()">Limpiar log</button>
+            <div id="log" class="log">
+                <div class="log-entry"><span class="log-time">[Sistema]</span> Esperando conexión...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Conexión al socket.io
+        const socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+            timeout: 20000
+        });
+        
+        let miBoleta = '';
+        let miNombre = '';
+        let chatAbiertoCon = null;
+
+        // Funciones de log
+        function addLog(mensaje, tipo = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#aed581',
+                success: '#81c784',
+                error: '#ef9a9a',
+                warning: '#ffd54f',
+                system: '#90a4ae'
+            };
+            const color = colors[tipo] || colors.info;
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span style="color:${color}">${mensaje}</span>`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function limpiarLog() {
+            document.getElementById('log').innerHTML = '';
+            addLog('Log limpiado', 'system');
+        }
+
+        // Actualizar estado
+        function setStatus(conectado, mensaje = '') {
+            const statusDiv = document.getElementById('status');
+            if (conectado) {
+                statusDiv.className = 'status status-conectado';
+                statusDiv.textContent = `Conectado al servidor ${mensaje}`;
+            } else {
+                statusDiv.className = 'status status-error';
+                statusDiv.textContent = `${mensaje}`;
+            }
+        }
+
+        // Abrir chat con otro usuario
+        function abrirChatCon(otroUsuarioId) {
+            if (!miBoleta) {
+                alert('Primero regístrate!');
+                return;
+            }
+            
+            if (!otroUsuarioId) {
+                alert('Ingresa el ID del usuario (boleta)');
+                return;
+            }
+            
+            chatAbiertoCon = otroUsuarioId;
+            
+            const roomId = [miBoleta, otroUsuarioId].sort().join('-');
+            
+            // 1. Unirse a la sala
+            socket.emit('join-private-room', { 
+                user1Id: miBoleta, 
+                user2Id: otroUsuarioId 
+            });
+            
+            // 2. Marcar TODA la conversación como leída
+            socket.emit('mark-conversation-read', { 
+                otroUsuarioId: otroUsuarioId,
+                miBoleta: miBoleta 
+            });
+            
+            // 3. Actualizar interfaz
+            document.getElementById('chat-con').textContent = `💬 Chateando con ${otroUsuarioId}`;
+            document.getElementById('receptor').value = otroUsuarioId;
+            
+            // 4. Quitar botones "Marcar leído" de mensajes de este usuario
+            const div = document.getElementById('mensajes');
+            const items = div.getElementsByClassName('no-leido');
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                if (item.innerHTML.includes(otroUsuarioId)) {
+                    item.className = 'mensaje leido';
+                    const btn = item.querySelector('button');
+                    if (btn) {
+                        btn.outerHTML = '<span style="color: #4CAF50; float: right;">✓✓ Leído</span>';
+                    }
+                }
+            }
+            
+            addLog(`Abriendo chat con usuario ${otroUsuarioId}`, 'info');
+            document.getElementById('mensaje').focus();
+        }
+
+        // Eventos de socket.io
+        socket.on('connect', () => {
+            addLog('Conectado al servidor', 'success');
+            setStatus(true);
+            
+            if (miBoleta && miNombre) {
+                socket.emit('register-user', { boleta: miBoleta, nombre: miNombre });
+                addLog(`Re-registrando: ${miNombre} (${miBoleta})`, 'info');
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            addLog(`Error de conexión: ${error.message}`, 'error');
+            setStatus(false, `Error: ${error.message}`);
+        });
+
+        socket.on('disconnect', () => {
+            addLog('Desconectado del servidor', 'error');
+            setStatus(false, 'Desconectado');
+        });
+
+        socket.on('connection-ack', (data) => {
+            addLog(`Confirmación de conexión: ${data.message}`, 'success');
+        });
+
+        // Eventos del chat
+        socket.on('register-ack', (data) => {
+            if (data.success) {
+                addLog(`Usuario registrado: ${data.nombre} (${data.boleta})`, 'success');
+                document.getElementById('registro-status').textContent = 'Registrado';
+                document.getElementById('registro-status').style.color = '#4CAF50';
+            }
+        });
+
+        socket.on('joined-room', (data) => {
+            addLog(`Unido a sala: ${data.roomId}`, 'info');
+        });
+
+        socket.on('new-private-message', (data) => {
+            const div = document.getElementById('mensajes');
+            const esPropio = data.emisor.boleta === miBoleta;
+            
+            // Si el mensaje es de la conversación actual, marcar como leído
+            const esDeChatActual = chatAbiertoCon === data.emisor.boleta;
+            
+            // Si el mensaje NO es propio y es del chat actual, marcar como leído
+            if (!esPropio && esDeChatActual) {
+                socket.emit('mark-message-read', {
+                    mensajeId: data.mensaje.id,
+                    receptorId: miBoleta
+                });
+            }
+            
+            // Mostrar el mensaje
+            div.innerHTML += `
+                <div class="mensaje ${esPropio ? 'mensaje-propio' : ''} ${!esPropio && esDeChatActual ? 'leido' : ''}">
+                    <strong>${esPropio ? 'Yo' : data.emisor.boleta}:</strong> 
+                    ${data.mensaje.contenido}
+                    <small style="color: gray; float: right;">
+                        ${new Date(data.mensaje.created_at).toLocaleTimeString()}
+                        ${esPropio ? '✓✓' : (esDeChatActual ? '✓✓' : '✓')}
+                    </small>
+                </div>
+            `;
+            div.scrollTop = div.scrollHeight;
+            
+            addLog(`Mensaje de ${data.emisor.boleta}: ${data.mensaje.contenido.substring(0, 30)}...`, 'info');
+        });
+
+        socket.on('unread-messages', (mensajes) => {
+            const div = document.getElementById('mensajes');
+            mensajes.forEach(m => {
+                div.innerHTML += `
+                    <div class="mensaje no-leido">
+                        <strong>No leído de ${m.emisor_id}:</strong> ${m.contenido}
+                        <button onclick="marcarLeido(${m.id})" style="float: right; padding: 2px 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Marcar leído
+                        </button>
+                        <small style="color: gray; display: block; font-size: 11px;">
+                            ${new Date(m.created_at).toLocaleString()}
+                        </small>
+                    </div>
+                `;
+            });
+            div.scrollTop = div.scrollHeight;
+            
+            addLog(`${mensajes.length} mensajes no leídos recibidos`, 'warning');
+        });
+
+        socket.on('message-sent', (data) => {
+            if (data.success) {
+                addLog(`Mensaje enviado (ID: ${data.mensaje.id})`, 'success');
+            }
+        });
+
+        socket.on('message-error', (data) => {
+            addLog(`Error al enviar mensaje: ${data.error}`, 'error');
+            alert('Error: ' + data.error);
+        });
+
+        // Actualizar interfaz cuando los mensajes son leídos
+        socket.on('messages-read-update', (data) => {
+            console.log('Mensajes leídos:', data);
+            
+            // Si el usuario que recibió la notificación es el emisor original
+            if (data.otroUsuarioId === miBoleta || data.leidoPor === miBoleta) {
+                const div = document.getElementById('mensajes');
+                const items = div.getElementsByClassName('mensaje');
+                
+                // Buscar mensajes que no son propios y marcarlos como leídos
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    // Si contiene el ID del otro usuario y no es propio
+                    if (item.innerHTML.includes(data.otroUsuarioId) && 
+                        !item.innerHTML.includes('Yo') &&
+                        !item.classList.contains('leido')) {
+                        item.classList.add('leido');
+                        // Quitar botón "Marcar leído" si existe
+                        const btn = item.querySelector('button');
+                        if (btn) {
+                            btn.outerHTML = '<span style="color: #4CAF50; float: right;">✓✓ Leído</span>';
+                        }
+                    }
+                }
+                
+                addLog(`${data.cantidad} mensajes marcados como leídos`, 'success');
+            }
+        });
+
+        // Funciones del usuario
+        function registrar() {
+            const boleta = document.getElementById('boleta').value.trim();
+            const nombre = document.getElementById('nombre').value.trim();
+            
+            if (!boleta || !nombre) {
+                alert('Ingresa boleta y nombre');
+                return;
+            }
+            
+            miBoleta = boleta;
+            miNombre = nombre;
+            
+            socket.emit('register-user', { boleta, nombre });
+            addLog(`Registrando: ${nombre} (${boleta})`, 'info');
+            document.getElementById('registro-status').textContent = 'Registrando...';
+            document.getElementById('registro-status').style.color = '#ff9800';
+            
+            setTimeout(() => {
+                socket.emit('get-unread-messages', { boleta });
+            }, 500);
+        }
+
+        function enviarMensaje() {
+            const receptor = document.getElementById('receptor').value.trim();
+            const contenido = document.getElementById('mensaje').value.trim();
+            
+            if (!miBoleta) {
+                alert('Primero regístrate!');
+                return;
+            }
+            
+            if (!receptor) {
+                alert('Ingresa el receptor (boleta)');
+                return;
+            }
+            
+            if (!contenido) {
+                alert('Escribe un mensaje');
+                return;
+            }
+            
+            const roomId = [miBoleta, receptor].sort().join('-');
+
+            socket.emit('join-private-room', { user1Id: miBoleta, user2Id: receptor });
+            
+            socket.emit('send-private-message', {
+                emisorId: miBoleta,
+                receptorId: receptor,
+                contenido: contenido,
+                roomId: roomId
+            });
+            
+            document.getElementById('mensaje').value = '';
+            addLog(`Enviando a ${receptor}: ${contenido.substring(0, 30)}...`, 'info');
+        }
+
+        function obtenerNoLeidos() {
+            if (!miBoleta) {
+                alert('Primero regístrate!');
+                return;
+            }
+            socket.emit('get-unread-messages', { boleta: miBoleta });
+            addLog(`Solicitando mensajes no leídos...`, 'info');
+        }
+
+        function marcarLeido(mensajeId) {
+            socket.emit('mark-message-read', {
+                mensajeId: mensajeId,
+                receptorId: miBoleta
+            });
+            addLog(`Marcando mensaje ${mensajeId} como leído`, 'success');
+            
+            const div = document.getElementById('mensajes');
+            const items = div.getElementsByClassName('no-leido');
+            for (let i = items.length - 1; i >= 0; i--) {
+                if (items[i].innerHTML.includes(`marcarLeido(${mensajeId})`)) {
+                    items[i].className = 'mensaje leido';
+                    const btn = items[i].querySelector('button');
+                    if (btn) {
+                        btn.outerHTML = '<span style="color: #4CAF50; float: right;">✓✓ Leído</span>';
+                    }
+                    break;
+                }
+            }
+        }
+
+        // =============================================
+        // INICIALIZACIÓN
+        // =============================================
+        addLog('Iniciando cliente de chat...', 'system');
+        addLog('Conectando a ws://localhost:5000', 'system');
+    </script>
+</body>
+</html>

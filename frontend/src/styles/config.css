@@ -1,0 +1,310 @@
+/* ============================================= */
+/* CONFIGURACIÓN - PÁGINA PRINCIPAL              */
+/* ============================================= */
+
+.config-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}
+
+.config-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+.config-subtitle {
+  font-size: 0.95rem;
+  color: #999;
+  margin: 0 0 2rem;
+}
+
+/* ============================================= */
+/* TABS DE NAVEGACIÓN                            */
+/* ============================================= */
+
+.config-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 2rem;
+}
+
+.config-tab {
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #999;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+  font-family: inherit;
+}
+
+.config-tab:hover {
+  color: #1a237e;
+}
+
+.config-tab.active {
+  color: #1a237e;
+}
+
+.config-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--peony-pink);
+  border-radius: 2px 2px 0 0;
+}
+
+/* ============================================= */
+/* SECCIONES Y TARJETAS                          */
+/* ============================================= */
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.config-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+  transition: box-shadow 0.2s ease;
+}
+
+.config-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.config-card-danger {
+  border-color: rgba(192, 57, 43, 0.2);
+  background: rgba(192, 57, 43, 0.02);
+}
+
+.config-card-danger:hover {
+  box-shadow: 0 4px 12px rgba(192, 57, 43, 0.1);
+}
+
+.config-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.25rem;
+}
+
+.config-card-desc {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+/* ============================================= */
+/* MENSAJES Y HELPERS                            */
+/* ============================================= */
+
+.config-hint {
+  display: block;
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 0.35rem;
+}
+
+.config-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(192, 57, 43, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid #c0392b;
+}
+
+.config-exito {
+  color: #2e7d32;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(46, 125, 50, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid #2e7d32;
+}
+
+/* ============================================= */
+/* AVATAR                                        */
+/* ============================================= */
+
+.config-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.config-avatar-preview {
+  flex-shrink: 0;
+}
+
+.config-avatar-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(227, 140, 127, 0.3);
+  background: #f1f3f5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.config-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 2.2rem;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.config-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ============================================= */
+/* FORMULARIOS                                   */
+/* ============================================= */
+
+.config-card .form-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a237e;
+  margin-bottom: 0.35rem;
+}
+
+.config-card .form-control {
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-card .form-control:focus {
+  border-color: var(--peony-pink);
+  box-shadow: 0 0 0 3px rgba(227, 140, 127, 0.15);
+}
+
+.config-card .form-control:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+/* ============================================= */
+/* BOTONES                                       */
+/* ============================================= */
+
+.config-card .btn {
+  border-radius: 10px;
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-card .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.config-card .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================= */
+/* MODAL DE ELIMINAR CUENTA                      */
+/* ============================================= */
+
+.modal-content {
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  border-bottom: 1px solid #e9ecef;
+  padding: 1.25rem 1.5rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  border-top: 1px solid #e9ecef;
+  padding: 1rem 1.5rem;
+  gap: 0.5rem;
+}
+
+/* ============================================= */
+/* RESPONSIVE                                    */
+/* ============================================= */
+
+@media (max-width: 768px) {
+  .config-title {
+    font-size: 1.6rem;
+  }
+
+  .config-card {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .config-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .config-tab {
+    white-space: nowrap;
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .config-avatar-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .config-avatar-actions {
+    width: 100%;
+  }
+
+  .config-avatar-actions .btn {
+    width: 100%;
+  }
+
+  .config-avatar-img {
+    width: 90px;
+    height: 90px;
+  }
+
+  .config-avatar-initials {
+    font-size: 2rem;
+  }
+}
