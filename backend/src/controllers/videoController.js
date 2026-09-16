@@ -1,3 +1,4 @@
+const path=require('path');
 const supabase = require('../config/supabase');
 const fs = require('fs');
 const {extraerAudio, limpiarArchivo, comprimirVideo } = require('../services/videoProcessor');
@@ -22,7 +23,7 @@ const obtenerVideos = async (req, res) => {
                 duracion,
                 vistas,
                 created_at,
-                usuarios!videos_boleta_fkey (boleta, nombre, avatar_url)
+                usuarios!videos_boleta_fkey (boleta, nombre_usuario, avatar_url)
             `)
             .eq('es_publico', true)
             .order('created_at', { ascending: false });
@@ -47,8 +48,21 @@ const obtenerVideoPorId = async (req, res) => {
         const { data: video, error } = await supabase
             .from('videos')
             .select(`
-                *,
-                usuarios!videos_boleta_fkey (boleta, nombre, avatar_url)
+                id,
+                titulo,
+                descripcion,
+                url_video,
+                thumbnail_url,
+                duracion,
+                vistas,
+                es_publico,
+                transcripcion,
+                temas_detectados,
+                unidad_tematica,
+                confianza_validacion,
+                es_relevante,
+                created_at,
+                usuarios!videos_boleta_fkey (boleta, nombre_usuario, avatar_url)
             `)
             .eq('id', id)
             .single();
@@ -71,14 +85,51 @@ const obtenerVideoPorId = async (req, res) => {
     }
 };
 
+// Obtener mis videos para que carguen en "Mis videos"
+const obtenerMisVideos = async (req, res) => {
+  try {
+    const boleta = req.user.boleta;
+
+    console.log('Obteniendo videos del usuario:', boleta);
+
+    const { data: videos, error } = await supabase
+      .from('videos')
+      .select(`
+        id,
+        titulo,
+        descripcion,
+        url_video,
+        thumbnail_url,
+        duracion,
+        vistas,
+        es_publico,
+        created_at
+      `)
+      .eq('boleta', boleta)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error al obtener mis videos:', error);
+      return res.status(500).json({ error: 'Error al cargar tus videos' });
+    }
+
+    console.log(`${videos?.length || 0} videos encontrados`);
+    res.json(videos || []);
+  } catch (error) {
+    console.error('Error en obtenerMisVideos:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
 //Función de crear video
 const crearVideo = async (req, res) => {
     let videoLocalPath = null;
     let videoParaProcesar = null;
     let audioPath = null;
+    let publicIdVideo = null;
 
     try {
-        const { titulo, descripcion } = req.body;
+        const { titulo, descripcion, colaboradores } = req.body;
         const boleta = req.user?.boleta;
 
         console.log('Datos recibidos:', { titulo, descripcion });
@@ -95,6 +146,60 @@ const crearVideo = async (req, res) => {
 
         if (!req.file) {
             return res.status(400).json({ error: 'No se subió ningún video' });
+        }
+
+        // Parsear colaboradores
+        let colaboradoresList = [];
+        if(colaboradores){
+            try{
+                colaboradoresList = JSON.parse(colaboradores);
+                if(!Array.isArray(colaboradoresList)){
+                    colaboradoresList=[];
+                }
+            }catch(err){
+                console.warn('Error en parsear colaboradores:', err.message);
+                colaboradoresList=[];
+            }
+        }
+
+        console.log(`Colaboradores recibidos ${colaboradoresList.length}`);
+
+        // Validar colaboradores antes de subir el video
+        const boletaColaboradores=[];
+
+        if(colaboradoresList.length > 0){
+            const {data: usuariosColab, error: colabError} = await supabase
+                .from('usuarios')
+                .select('boleta, nombre_usuario')
+                .in('nombre_usuario', colaboradoresList);
+            
+            if(colabError){
+                console.error('Error al validar colaboradores', colabError);
+                return res.status(500).json({error: 'Error al validar a los colaboradores'});
+            }
+
+            // Verificar que todos existan
+            const nombresEncontrados = usuariosColab.map((u) => u.nombre_usuario);
+            const noEncontrados = colaboradoresList.filter(
+                (nombre) => !nombresEncontrados.includes(nombre)
+            );
+
+            if(noEncontrados.length > 0){
+                return res.status(400).json({
+                    error: `Estos usuarios no existen ${noEncontrados.join(', ')}`,
+                });
+            }
+
+            // No puede incluirse a sí mismo como colaborador
+            const incluyeAlCreador = usuariosColab.some((u) => u.boleta === boleta);
+            if(incluyeAlCreador){
+                return res.status(400).json({
+                    error: 'No puedes agregarte a ti mismo como colaborador',
+                });
+            }
+
+            // Guardar las boletas de los colaboradores
+            usuariosColab.forEach((u) => boletaColaboradores.push(u.boleta));
         }
 
         videoLocalPath = req.file.path;
@@ -269,6 +374,32 @@ const crearVideo = async (req, res) => {
 
         console.log('Video guardado con ID:', nuevoVideo.id);
 
+        const relaciones = [
+            {
+                boleta,
+                video_id: nuevoVideo.id,
+                es_autor_principal: true,
+            },
+        ];
+
+        boletaColaboradores.forEach((boletaColab) =>{
+            relaciones.push({
+                boleta:boletaColab,
+                video_id: nuevoVideo.id,
+                es_autor_principal:false,
+            });
+        });
+
+        const {error: relError} = await supabase
+            .from('alumno_publica_video')
+            .insert(relaciones);
+
+        if(relError){
+            console.error('Error al registrar relaciones', relError);
+        }else{
+            console.log(`${relaciones.length}, relaciones registradas`);
+        }
+
         // Generación del cuestionario
         let cuestionariosGenerados = null;
 
@@ -322,7 +453,7 @@ const crearVideo = async (req, res) => {
         const respuesta = {
             mensaje: 'Video publicado exitosamente',
             video: nuevoVideo,
-            cuestionario_generado: cuestionario !== null
+            cuestionario_generado: cuestionariosGenerados !== null
         };
 
         // Si hubo validación, incluir los resultados
@@ -361,6 +492,21 @@ const actualizarVideo = async (req, res) => {
         const { id } = req.params;
         const { titulo, descripcion } = req.body;
         const boleta = req.user.boleta;
+
+        console.log('Actualizando video', {id, boleta});
+
+        const {data: videoExistente, error: findError} = await supabase
+            .from('videos')
+            .select('boleta, titulo, descripcion')
+            .eq('id',id)
+            .single();
+
+        if(findError || !videoExistente){
+            return res.status(404).json({error: 'Video no encontrado'});
+        }
+        if (videoExistente.boleta !== boleta){
+            return res.status(403).json({error: 'No tienes permiso para editar ese video'});
+        }
 
         if(titulo){
             console.log('Moderando nuevo título');
@@ -475,10 +621,10 @@ const obtenerVideosPorNombre = async (req, res) => {
 
         console.log('Buscando usuario por nombre:', nombre);
 
-        // 1. Buscar al usuario por su nombre
+        // Buscar al usuario por su nombre
         const { data: usuarioEncontrado, error: errorUsuario } = await supabase
             .from('usuarios')
-            .select('boleta, nombre, avatar_url')
+            .select('boleta, nombre_usuario, avatar_url')
             .ilike('nombre_usuario', nombre)
             .maybeSingle();
 
@@ -506,7 +652,7 @@ const obtenerVideosPorNombre = async (req, res) => {
                 duracion,
                 vistas,
                 created_at,
-                usuarios!videos_boleta_fkey (boleta, nombre, avatar_url)
+                usuarios!videos_boleta_fkey (boleta, nombre_usuario, avatar_url)
             `)
             .eq('boleta', usuarioEncontrado.boleta)
             .order('created_at', { ascending: false });
@@ -523,7 +669,7 @@ const obtenerVideosPorNombre = async (req, res) => {
                 nombre: usuarioEncontrado.nombre_usuario,
                 avatar_url: usuarioEncontrado.avatar_url
             },
-            videos: videos
+            videos: videos || []
         });
 
     } catch (error) {
@@ -552,7 +698,7 @@ const buscarVideos = async (req, res) => {
                     duracion,
                     vistas,
                     created_at,
-                    usuarios!videos_boleta_fkey (boleta, nombre, avatar_url)
+                    usuarios!videos_boleta_fkey (boleta, nombre_usuario, avatar_url)
                 `)
                 .eq('es_publico', true)
                 .order('created_at', { ascending: false })
@@ -580,7 +726,7 @@ const buscarVideos = async (req, res) => {
                 duracion,
                 vistas,
                 created_at,
-                usuarios!videos_boleta_fkey (boleta, nombre, avatar_url)
+                usuarios!videos_boleta_fkey (boleta, nombre_usuario, avatar_url)
             `)
             .or(`titulo.ilike.%${termino}%,descripcion.ilike.%${termino}%`)
             .eq('es_publico', true)
@@ -596,7 +742,7 @@ const buscarVideos = async (req, res) => {
         // Primero, encontrar usuarios que coincidan con el término
         const { data: usuarios, error: errorUsuarios } = await supabase
             .from('usuarios')
-            .select('boleta, nombre, avatar_url')
+            .select('boleta, nombre_usuario, avatar_url')
             .ilike('nombre_usuario', `%${termino}%`);
 
         if (errorUsuarios) {
@@ -622,7 +768,7 @@ const buscarVideos = async (req, res) => {
                     duracion,
                     vistas,
                     created_at,
-                    usuarios!videos_boleta_fkey (boleta, nombre, avatar_url)
+                    usuarios!videos_boleta_fkey (boleta, nombre_usuario, avatar_url)
                 `)
                 .in('boleta', boletas)
                 .eq('es_publico', true)
@@ -670,6 +816,7 @@ const buscarVideos = async (req, res) => {
 module.exports = {
     obtenerVideos,
     obtenerVideoPorId,
+    obtenerMisVideos,
     crearVideo,
     actualizarVideo,
     eliminarVideo,

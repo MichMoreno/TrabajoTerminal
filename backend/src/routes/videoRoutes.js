@@ -8,6 +8,7 @@ const { verificarLimitePublicaciones } = require ('../middleware/limitePublicaci
 const {
     obtenerVideos,
     obtenerVideoPorId,
+    obtenerMisVideos,
     crearVideo,
     actualizarVideo,
     eliminarVideo,
@@ -19,6 +20,8 @@ const {
 router.get('/', obtenerVideos);
 router.get('/buscar',buscarVideos);
 router.get('/usuario/:nombre', obtenerVideosPorNombre);
+
+router.get('/mis-videos', verificarToken,obtenerMisVideos);
 
 router.get('/:id', verificarToken, verificarLimiteVisualizacion, obtenerVideoPorId);
 

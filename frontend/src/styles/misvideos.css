@@ -1,0 +1,293 @@
+/* ============================================= */
+/* MIS VIDEOS - PÁGINA PRINCIPAL                 */
+/* ============================================= */
+
+.misvideos-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.misvideos-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+.misvideos-subtitle {
+  font-size: 0.95rem;
+  color: #999;
+  margin: 0;
+}
+
+.misvideos-btn-publicar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.misvideos-btn-icon {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ============================================= */
+/* ESTADO VACÍO                                  */
+/* ============================================= */
+
+.misvideos-vacio {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 16px;
+  border: 2px dashed #e9ecef;
+}
+
+.misvideos-vacio-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.misvideos-vacio h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.5rem;
+}
+
+.misvideos-vacio p {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0 0 1.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================= */
+/* GRID DE VIDEOS                                */
+/* ============================================= */
+
+.misvideos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ============================================= */
+/* TARJETA DE VIDEO                              */
+/* ============================================= */
+
+.misvideo-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.misvideo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.misvideo-thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #e9ecef;
+  overflow: hidden;
+}
+
+.misvideo-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.misvideo-duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.misvideo-badge-privado {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================= */
+/* INFO DEL VIDEO                                */
+/* ============================================= */
+
+.misvideo-info {
+  padding: 0.9rem 1rem 0.5rem;
+  flex: 1;
+}
+
+.misvideo-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.misvideo-stats {
+  font-size: 0.8rem;
+  color: #999;
+  margin: 0 0 0.5rem;
+}
+
+.misvideo-descripcion {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+/* ============================================= */
+/* ACCIONES                                      */
+/* ============================================= */
+
+.misvideo-acciones {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid #f1f3f5;
+  margin-top: auto;
+}
+
+.misvideo-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  font-family: inherit;
+}
+
+.misvideo-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Ver */
+.misvideo-btn-ver {
+  background: #f1f3f5;
+  color: #1a237e;
+}
+
+.misvideo-btn-ver:hover {
+  background: #e9ecef;
+  color: #1a237e;
+}
+
+/* Editar */
+.misvideo-btn-editar {
+  background: rgba(26, 35, 126, 0.1);
+  color: #1a237e;
+}
+
+.misvideo-btn-editar:hover {
+  background: rgba(26, 35, 126, 0.18);
+  color: #1a237e;
+}
+
+/* Eliminar */
+.misvideo-btn-eliminar {
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+}
+
+.misvideo-btn-eliminar:hover {
+  background: rgba(192, 57, 43, 0.15);
+  color: #c0392b;
+}
+
+/* ============================================= */
+/* RESPONSIVE                                    */
+/* ============================================= */
+
+@media (max-width: 768px) {
+  .misvideos-title {
+    font-size: 1.6rem;
+  }
+
+  .misvideos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .misvideos-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .misvideos-btn-publicar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .misvideos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .misvideo-acciones {
+    flex-direction: column;
+  }
+
+  .misvideos-vacio {
+    padding: 3rem 1.5rem;
+  }
+
+  .misvideos-vacio-icon {
+    font-size: 3rem;
+  }
+
+  .misvideos-vacio h2 {
+    font-size: 1.2rem;
+  }
+}

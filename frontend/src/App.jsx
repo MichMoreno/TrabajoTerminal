@@ -6,9 +6,12 @@ import SolicitarRecuperacionPage from './pages/RecuperacionPage';
 import RestablecerPasswordPage from './pages/RestablecerPasswordPage';
 import HomePage from './pages/HomePage';
 import MisVideosPage from './pages/MisVideosPage';
-import PerfilPage from './pages/PerfilPage';  // ← Nuevo
-import { useAuth } from './hooks/useAuth';
+import PerfilPage from './pages/PerfilPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
+import PublicarVideoPage from './pages/PublicarVideoPage';
+import ChatsPage from './pages/ChatsPage';
+import { useAuth } from './hooks/useAuth';
+
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -35,7 +38,10 @@ function App() {
         <Route path="/recuperar-password" element={<SolicitarRecuperacionPage />} />
         <Route path="/restablecer-password" element={<RestablecerPasswordPage />} />
         <Route path="/configuracion" element={<PrivateRoute><ConfiguracionPage/></PrivateRoute>} />
-
+        <Route path="/mis-videos" element={<PrivateRoute><MisVideosPage/></PrivateRoute>} />
+        <Route path="/mis-videos/publicar" element={<PrivateRoute><PublicarVideoPage/></PrivateRoute>} />
+        <Route path="/chats" element={<PrivateRoute><ChatsPage/></PrivateRoute>} />
+        
         {/* ===== RUTAS PRIVADAS ===== */}
         <Route
           path="/feed"

@@ -329,15 +329,15 @@ const ConfiguracionPage = () => {
                   ) : tieneAvatar ? (
                     <img
                       src={user.avatar_url}
-                      alt={user.nombre_usuario}
+                      alt={user.nombre_usuario || user.nombre}
                       className="config-avatar-img"
                     />
                   ) : (
                     <div
                       className="config-avatar-img config-avatar-initials"
-                      style={{ backgroundColor: getColorAvatar(user?.nombre_usuario) }}
+                      style={{ backgroundColor: getColorAvatar(user?.nombre_usuario || user?.nombre) }}
                     >
-                      {getIniciales(user?.nombre_usuario)}
+                      {getIniciales(user?.nombre_usuario || user?.nombre)}
                     </div>
                   )}
                 </div>

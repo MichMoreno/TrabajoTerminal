@@ -67,8 +67,7 @@ const PerfilPage = () => {
 
   const handleEnviarMensaje = () => {
     // Navegar al chat con este usuario
-    // Por ahora, redirigimos a /chats con un query param
-    navigate(`/chats?usuario=${perfil.nombre_usuario}`);
+    navigate(`/chats?usuario=${perfil.boleta}`);
   };
 
   const handleVerRepositorio = () => {
