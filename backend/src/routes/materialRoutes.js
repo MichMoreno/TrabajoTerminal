@@ -7,6 +7,7 @@ const { verificarLimitePublicaciones } = require('../middleware/limitePublicacio
 const {
     obtenerMateriales,
     obtenerMaterialesPorNombre,
+    obtenerMisDocumentos,
     subirMaterial,
     editarMaterial,
     eliminarMaterial,
@@ -16,6 +17,7 @@ const {
 // Rutas públicas
 router.get('/', obtenerMateriales);
 router.get('/usuario/:nombre', obtenerMaterialesPorNombre);
+router.get('/mis-documentos', verificarToken, obtenerMisDocumentos);
 router.get('/:id/descargar', verificarToken, verificarLimiteDescargas, descargarMaterial);
 
 // Rutas protegidas

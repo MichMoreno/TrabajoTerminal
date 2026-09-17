@@ -402,9 +402,11 @@
 }
 
 .chats-sin-seleccion-icon {
-  font-size: 4rem;
-  opacity: 0.4;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
   margin-bottom: 1rem;
+  opacity: 0.6;
 }
 
 .chats-sin-seleccion h2 {

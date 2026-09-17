@@ -9,8 +9,17 @@ const obtenerMateriales = async (req, res) => {
         const { data: materiales, error } = await supabase
             .from('materiales')
             .select(`
-                *,
-                usuarios!inner (nombre, avatar_url)
+                id,
+                boleta,
+                video_id,
+                titulo,
+                descripcion,
+                archivo_url,
+                tipo_archivo,
+                tamaño_bytes,
+                descargas,
+                created_at,
+                usuarios!materiales_boleta_fkey (nombre_usuario, avatar_url)
             `)
             .order('created_at', { ascending: false });
 
@@ -30,8 +39,8 @@ const obtenerMaterialesPorNombre = async (req, res) => {
         // Buscar usuario por nombre
         const { data: usuario, error: userError } = await supabase
             .from('usuarios')
-            .select('boleta, nombre, avatar_url')
-            .ilike('nombre', nombre)
+            .select('boleta, nombre_usuario, avatar_url')
+            .ilike('nombre_usuario', nombre)
             .maybeSingle();
 
         if (userError || !usuario) {
@@ -49,16 +58,49 @@ const obtenerMaterialesPorNombre = async (req, res) => {
 
         res.json({
             usuario: {
-                nombre: usuario.nombre,
+                nombre: usuario.nombre_usuario,
                 avatar_url: usuario.avatar_url
             },
-            materiales
+            materiales: materiales || [],
         });
     } catch (error) {
         console.error('Error al obtener materiales del usuario:', error);
         res.status(500).json({ error: 'Error al cargar materiales' });
     }
 };
+
+// Obtener mis documentos (usuarios autenticados)
+
+const obtenerMisDocumentos = async (req, res) => {
+    try{
+        const boleta = req.user.boleta;
+        console.log('Obteniendo documentos del usuario', boleta);
+
+        const{data:documentos, error} = await supabase
+            .from('materiales')
+            .select(`
+                id,
+                boleta,
+                video_id,
+                titulo,
+                descripcion,
+                archivo_url,
+                tipo_archivo,
+                tamaño_bytes,
+                descargas,
+                created_at
+                `)
+            .eq('boleta', boleta)
+            .order('created_at', {ascending: false});
+        if(error) throw error;
+
+        console.log(`${documentos?.length || 0}, documentos encontrados`);
+        res.json(documentos || []);
+    }catch(error){
+        console.error('Error en obtenerMisDocumentos:', error)
+        res.status(500).json({error: 'Error en el servidor'});
+    }
+}
 
 // Subir un nuevo material
 const subirMaterial = async (req, res) => {
@@ -77,11 +119,55 @@ const subirMaterial = async (req, res) => {
             return res.status(400).json({ error: 'No se subió ningún archivo' });
         }
 
+        let colaboradoresList = [];
+        if(colaboradores){
+            try{
+                colaboradoresList = JSON.parse(colaboradores);
+                if(!Array.isArray(colaboradoresList)) colaboradoresList = [];
+            } catch(err){
+                console.warn('Error al parsear colaboradores', err.message);
+                colaboradoresList = [];
+            }
+        }
+
+        // Validar colaboradores 
+        const boletasColaboradores = [];
+        if(colaboradoresList.length > 0 ) {
+            const{data:usuariosColab, error: colabError} = await supabase
+                .from('usuarios')
+                .select('boleta, nombre_usuario')
+                .in('nombre_usuario', colaboradoresList);
+            
+            if(colabError){
+                return res.status(500).json({error: 'Error en validar colaboradores'});
+            }
+
+            const nombresEncontrados = usuariosColab.map((u) => u.nombre_usuario);
+            const noEncontrados = colaboradoresList.filter(
+                (nombre) => !nombresEncontrados.includes(nombre)
+            );
+
+            if(noEncontrados.length > 0){
+                return res.status(400).json({
+                    error: `Estos usuarios no existen: ${noEncontrados.join(', ')}`,
+                });
+            }
+
+            if(usuariosColab.some((u) => u.boleta === boleta)){
+                return res.status(400).json({
+                    error: 'No puedes agregarte a ti mismo como colaborador',
+                });
+            }
+
+            usuariosColab.forEach((u) => boletasColaboradores.push(u.boleta));
+
+        }
+
         // Datos de Cloudinary
         const archivoUrl = req.file.path;           // URL en Cloudinary
         const publicId = req.file.filename;         // Public ID para eliminar después
         const tamañoBytes = req.file.size || 0;      // Tamaño en bytes
-        const tipoArchivo = req.file.mimetype || '';
+        const tipoArchivo = (req.file.mimetype || '').split('/').pop();
 
         console.log('   Documento subido a Cloudinary:');
         console.log('   URL:', archivoUrl);
@@ -109,7 +195,7 @@ const subirMaterial = async (req, res) => {
             console.log('Descripción aprobada');
         }
 
-        // 4. Guardar en Supabase
+        // Guardar en Supabase
         const { data: material, error } = await supabase
             .from('materiales')
             .insert({
@@ -133,7 +219,34 @@ const subirMaterial = async (req, res) => {
             return res.status(500).json({ error: 'Error al subir material' });
         }
 
+        const relaciones = [
+            {
+                boleta,
+                documento_id: material.id,
+                es_autor_principal: true,
+            },
+        ];
+
+        boletasColaboradores.forEach((boletaColab) => {
+            relaciones.push({
+                boleta: boletaColab,
+                documeto_id: material.id,
+                es_autor_principal: false,
+            });
+        });
+
+        const{error: relError} = await supabase
+            .from('alumno_publica_documento')
+            .insert(relaciones);
+        
+        if(relError){
+            console.error('Error al registrar relaciones:', relError);
+        }else{
+            console.log(`${relaciones.length} relaciones registradas`);
+        }
+
         console.log('Material guardado con ID:', material.id);
+        
         res.status(201).json({
             mensaje: 'Material subido exitosamente',
             material
@@ -281,7 +394,11 @@ const descargarMaterial = async (req, res) => {
 
         // Generar URL de Cloudinary (sin redirigir)
         let url = material.archivo_url;
-        const tiposCompresibles = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'];
+
+        const tiposCompresibles = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt',
+        'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'c', 'cpp', 'h', 'cs',
+        'php', 'rb', 'go', 'rs', 'swift', 'kt', 'sql', 'sh', 'html', 'css', 'json', 'xml',
+        'md', 'csv'];
 
         if (material.public_id_archivo && tiposCompresibles.includes(material.tipo_archivo)) {
             url = cloudinary.url(material.public_id_archivo, {
@@ -316,6 +433,7 @@ const descargarMaterial = async (req, res) => {
 module.exports = {
     obtenerMateriales,
     obtenerMaterialesPorNombre,
+    obtenerMisDocumentos,
     subirMaterial,
     editarMaterial,
     eliminarMaterial,

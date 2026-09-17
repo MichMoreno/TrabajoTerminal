@@ -9,6 +9,8 @@ import MisVideosPage from './pages/MisVideosPage';
 import PerfilPage from './pages/PerfilPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import PublicarVideoPage from './pages/PublicarVideoPage';
+import RepositorioPage from './pages/RepositorioPage';
+import SubirDocumentoPage from './pages/SubirDocumentoPage';
 import ChatsPage from './pages/ChatsPage';
 import { useAuth } from './hooks/useAuth';
 
@@ -41,6 +43,8 @@ function App() {
         <Route path="/mis-videos" element={<PrivateRoute><MisVideosPage/></PrivateRoute>} />
         <Route path="/mis-videos/publicar" element={<PrivateRoute><PublicarVideoPage/></PrivateRoute>} />
         <Route path="/chats" element={<PrivateRoute><ChatsPage/></PrivateRoute>} />
+        <Route path="/repositorio" element={<PrivateRoute><RepositorioPage/></PrivateRoute>} />
+        <Route path="/repositorio/subir" element={<PrivateRoute><SubirDocumentoPage/></PrivateRoute>} />
         
         {/* ===== RUTAS PRIVADAS ===== */}
         <Route

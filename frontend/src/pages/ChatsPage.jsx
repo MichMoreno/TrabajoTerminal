@@ -1,9 +1,10 @@
-// frontend/src/pages/ChatsPage.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
+import { motion } from 'motion/react';
+import iconMensaje from '../assets/icons/iconMensaje.png';
 
 const getIniciales = (nombre) => {
   if (!nombre) return '?';
@@ -376,7 +377,20 @@ const ChatsPage = () => {
         <section className="chats-conversacion">
           {!chatActivo ? (
             <div className="chats-sin-seleccion">
-              <div className="chats-sin-seleccion-icon">💬</div>
+              <motion.img
+              src={iconMensaje}
+              alt="Chat"
+              className="Chats-sin-seleccion-icon"
+              animate={{
+                y:[0,-10,0],
+                scale:[1,1.05,1],
+              }}
+              transition={{
+                duration: 2.5,
+                repetat: Infinity,
+                ease: 'easeInOut',
+              }}
+              />
               <h2>Selecciona una conversación</h2>
               <p>Elige un chat de la lista para empezar a conversar.</p>
             </div>

@@ -1,0 +1,263 @@
+/* ============================================= */
+/* REPOSITORIO - PÁGINA PRINCIPAL                */
+/* ============================================= */
+
+.repositorio-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.repositorio-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+.repositorio-subtitle {
+  font-size: 0.95rem;
+  color: #999;
+  margin: 0;
+}
+
+.repositorio-btn-publicar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.repositorio-btn-icon {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ============================================= */
+/* ESTADO VACÍO                                  */
+/* ============================================= */
+
+.repositorio-vacio {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 16px;
+  border: 2px dashed #e9ecef;
+}
+
+.repositorio-vacio-icon {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.repositorio-vacio h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.5rem;
+}
+
+.repositorio-vacio p {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0 0 1.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================= */
+/* GRID DE DOCUMENTOS                            */
+/* ============================================= */
+
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.doc-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.doc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.doc-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #f8f9fa, #eef1f5);
+  border-radius: 12px;
+  margin: 1.25rem 1.25rem 0;
+}
+
+.doc-icon-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.doc-info {
+  padding: 0.9rem 1rem 0.5rem;
+  flex: 1;
+}
+
+.doc-titulo {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #1a237e;
+  margin: 0 0 0.35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.doc-descripcion {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0 0 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.doc-stats {
+  font-size: 0.78rem;
+  color: #999;
+  margin: 0;
+}
+
+.doc-acciones {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid #f1f3f5;
+  margin-top: auto;
+}
+
+.doc-btn {
+  flex: 1;
+  padding: 0.5rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  font-family: inherit;
+}
+
+.doc-btn:hover {
+  transform: translateY(-1px);
+}
+
+.doc-btn-descargar {
+  background: rgba(46, 125, 50, 0.1);
+  color: #2e7d32;
+}
+
+.doc-btn-descargar:hover {
+  background: rgba(46, 125, 50, 0.18);
+}
+
+.doc-btn-editar {
+  background: rgba(26, 35, 126, 0.1);
+  color: #1a237e;
+}
+
+.doc-btn-editar:hover {
+  background: rgba(26, 35, 126, 0.18);
+}
+
+.doc-btn-eliminar {
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+}
+
+.doc-btn-eliminar:hover {
+  background: rgba(192, 57, 43, 0.15);
+}
+
+/* ============================================= */
+/* RESPONSIVE                                    */
+/* ============================================= */
+
+@media (max-width: 768px) {
+  .repositorio-title {
+    font-size: 1.6rem;
+  }
+
+  .docs-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .repositorio-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .repositorio-btn-publicar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .docs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-icon-img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .doc-acciones {
+    flex-direction: column;
+  }
+
+  .doc-btn {
+    padding: 0.6rem 0.5rem;
+  }
+
+  .repositorio-vacio {
+    padding: 3rem 1.5rem;
+  }
+
+  .repositorio-vacio-icon {
+    width: 80px;
+    height: 80px;
+  }
+
+  .repositorio-vacio h2 {
+    font-size: 1.2rem;
+  }
+}
