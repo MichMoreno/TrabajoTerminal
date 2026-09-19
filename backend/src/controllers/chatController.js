@@ -39,6 +39,12 @@ const obtenerChats = async (req, res) => {
 
     console.log(`Obteniendo chats para usuario: ${boleta}`);
 
+    if (usuario_id === boleta) {
+    return res.status(400).json({ 
+      error: 'No puedes crear un chat contigo mismo' 
+    });
+  }
+
     // Si se especifica un usuario:id (chat individual)
     if (usuario_id) {
       const { data: chat, error } = await supabase
@@ -294,6 +300,22 @@ const eliminarChat = async (req, res) => {
         const { chat_id } = req.params;
         const boleta = req.user.boleta;
 
+        const {data: chat, error: chatError} = await supabase
+          .from('chat')
+          .select('usuario1_id, usuario2_id')
+          .eq('id',chat_id)
+          .single();
+        
+        if(chatError || !chat){
+          return res.status(404).json({error: 'Chat no encontrado'});
+        }
+
+        if(chat.usuario1_id !== boleta && chat.usuario2_id !== boleta){
+          return res.status(403).json({error: 'No tienes permiso'});
+        }
+
+        await supabase.from('mensajes_privados').delete().eq('chat_id', chat_id);
+
         console.log(`Eliminando chat ${chat_id} para usuario ${boleta}`);
 
         const { error } = await supabase
@@ -301,6 +323,8 @@ const eliminarChat = async (req, res) => {
             .delete()
             .eq('id', chat_id)
             .or(`usuario1_id.eq.${boleta},usuario2_id.eq.${boleta}`);
+
+        if (error) throw error;
 
         if (error) {
             return res.status(404).json({ error: 'Chat no encontrado o no autorizado' });
@@ -314,12 +338,112 @@ const eliminarChat = async (req, res) => {
     }
 };
 
-// =============================================
-// EXPORTAR
-// =============================================
+const editarMensaje = async (req, res) => {
+  try {
+    const { mensaje_id } = req.params;
+    const { contenido } = req.body;
+    const boleta = req.user.boleta;
+
+    console.log('=== editarMensaje ===');
+    console.log('mensaje_id:', mensaje_id);
+    console.log('contenido:', contenido);
+    console.log('boleta:', boleta);
+
+    // ✅ Validación correcta
+    if (!contenido || contenido.trim().length === 0) {
+      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
+    }
+
+    if (contenido.length > 500) {
+      return res.status(400).json({ error: 'El mensaje no puede exceder 500 caracteres' });
+    }
+
+    // ✅ Verificar que el mensaje existe y pertenece al usuario
+    const { data: mensaje, error: findError } = await supabase
+      .from('mensajes_privados')  // ✅ Tabla correcta
+      .select('emisor_id, contenido')  // ✅ Columnas correctas
+      .eq('id', mensaje_id)
+      .single();
+
+    if (findError || !mensaje) {
+      console.log('Mensaje no encontrado:', findError);
+      return res.status(404).json({ error: 'Mensaje no encontrado' });
+    }
+
+    if (mensaje.emisor_id !== boleta) {
+      console.log('Emisor no coincide:', mensaje.emisor_id, '!==', boleta);
+      return res.status(403).json({ error: 'No puedes editar este mensaje' });
+    }
+
+    // ✅ Actualizar el mensaje
+    const { data: mensajeActualizado, error } = await supabase
+      .from('mensajes_privados')  // ✅ Tabla correcta
+      .update({
+        contenido: contenido.trim(),
+        editado: true,
+        fecha_edicion: new Date().toISOString(),  // ✅ Con paréntesis
+      })
+      .eq('id', mensaje_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('Mensaje editado correctamente');
+
+    res.json({
+      mensaje: 'Mensaje editado correctamente',
+      mensajeActualizado,
+    });
+  } catch (error) {
+    console.error('Error en editarMensaje:', error);
+    res.status(500).json({ error: 'Error al editar mensaje' });
+  }
+};
+
+// Eliminar mensaje
+const eliminarMensaje = async (req, res) => {
+  try {
+    const { mensaje_id } = req.params;
+    const boleta = req.user.boleta;
+
+    console.log('=== eliminarMensaje ===');
+    console.log('mensaje_id:', mensaje_id);
+
+    // ✅ Verificar que el mensaje existe y pertenece al usuario
+    const { data: mensaje, error: findError } = await supabase
+      .from('mensajes_privados')  // ✅ Tabla correcta
+      .select('emisor_id')
+      .eq('id', mensaje_id)
+      .single();
+
+    if (findError || !mensaje) {
+      return res.status(404).json({ error: 'Mensaje no encontrado' });
+    }
+
+    if (mensaje.emisor_id !== boleta) {
+      return res.status(403).json({ error: 'No puedes eliminar este mensaje' });
+    }
+
+    const { error } = await supabase
+      .from('mensajes_privados')  // ✅ Tabla correcta
+      .delete()
+      .eq('id', mensaje_id);
+
+    if (error) throw error;
+
+    res.json({ mensaje: 'Mensaje eliminado correctamente' });
+  } catch (error) {
+    console.error('Error en eliminarMensaje:', error);
+    res.status(500).json({ error: 'Error al eliminar mensaje' });
+  }
+};
+
 module.exports = {
     obtenerChats,
     obtenerMensajesChat,
     eliminarChat,
+    editarMensaje,
+    eliminarMensaje,
     enviarMensajeSocket  // Para usar en Socket.io
 };

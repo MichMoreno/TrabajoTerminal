@@ -1,11 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Modal, Button, Form } from 'react-bootstrap';
+import { ContextMenu } from '@base-ui/react/context-menu';
+import { motion } from 'motion/react';
 import AppLayout from '../components/layout/AppLayout';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
-import { motion } from 'motion/react';
 import iconMensaje from '../assets/icons/iconMensaje.png';
 
+// Helpers
 const getIniciales = (nombre) => {
   if (!nombre) return '?';
   const palabras = nombre.trim().split(' ').filter(Boolean);
@@ -16,10 +19,7 @@ const getIniciales = (nombre) => {
 
 const getColorAvatar = (nombre) => {
   if (!nombre) return '#b45f52';
-  const colores = [
-    '#b45f52', '#4a6fa5', '#6a8e5f', '#a5844a',
-    '#7d5ba6', '#c06c84', '#4a8e8e', '#8e6a4a'
-  ];
+  const colores = ['#b45f52', '#4a6fa5', '#6a8e5f', '#a5844a', '#7d5ba6', '#c06c84', '#4a8e8e', '#8e6a4a'];
   let hash = 0;
   for (let i = 0; i < nombre.length; i++) {
     hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
@@ -29,27 +29,58 @@ const getColorAvatar = (nombre) => {
 
 const formatearHora = (fecha) => {
   if (!fecha) return '';
-  const date = new Date(fecha);
+  
+  let fechaISO = fecha;
+  if (!fecha.endsWith('Z') && !fecha.includes('+') && !fecha.includes('-', 10)) {
+    fechaISO = fecha + 'Z';
+  }
+  
+  const date = new Date(fechaISO);
   const ahora = new Date();
   const dif = ahora - date;
   const dias = Math.floor(dif / 86400000);
 
   if (dias === 0) {
-    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'America/Mexico_City',
+    });
   }
   if (dias === 1) return 'Ayer';
-  if (dias < 7) return date.toLocaleDateString('es-MX', { weekday: 'short' });
-  return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
+  if (dias < 7) {
+    return date.toLocaleDateString('es-MX', {
+      weekday: 'short',
+      timeZone: 'America/Mexico_City',
+    });
+  }
+  return date.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'America/Mexico_City',
+  });
 };
 
 const formatearHoraMensaje = (fecha) => {
   if (!fecha) return '';
-  return new Date(fecha).toLocaleTimeString('es-MX', {
+  
+  let fechaISO = fecha;
+  if (!fecha.endsWith('Z') && !fecha.includes('+') && !fecha.includes('-', 10)) {
+    fechaISO = fecha + 'Z';
+  }
+  
+  return new Date(fechaISO).toLocaleTimeString('es-MX', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
+    timeZone: 'America/Mexico_City',
   });
 };
 
+// =============================================
+// COMPONENTE
+// =============================================
 const ChatsPage = () => {
   const { user } = useAuth();
   const { socket } = useSocket();
@@ -63,6 +94,21 @@ const ChatsPage = () => {
   const [error, setError] = useState('');
   const [nuevoMensaje, setNuevoMensaje] = useState('');
   const [usuarioEscribiendo, setUsuarioEscribiendo] = useState(false);
+
+  // Modales
+  const [showEliminarChatModal, setShowEliminarChatModal] = useState(false);
+  const [chatEliminar, setChatEliminar] = useState(null);
+  const [eliminarChatLoading, setEliminarChatLoading] = useState(false);
+
+  const [showEditarMensajeModal, setShowEditarMensajeModal] = useState(false);
+  const [mensajeEditar, setMensajeEditar] = useState(null);
+  const [contenidoEditar, setContenidoEditar] = useState('');
+  const [editarMensajeLoading, setEditarMensajeLoading] = useState(false);
+  const [editarMensajeError, setEditarMensajeError] = useState('');
+
+  const [showEliminarMensajeModal, setShowEliminarMensajeModal] = useState(false);
+  const [mensajeEliminar, setMensajeEliminar] = useState(null);
+  const [eliminarMensajeLoading, setEliminarMensajeLoading] = useState(false);
 
   const mensajesEndRef = useRef(null);
   const token = localStorage.getItem('token');
@@ -86,7 +132,6 @@ const ChatsPage = () => {
         setLoadingChats(false);
       }
     };
-
     cargarChats();
   }, [token]);
 
@@ -103,31 +148,27 @@ const ChatsPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
-
         if (!response.ok) throw new Error(data.error || 'Error al abrir chat');
 
         if (data.chats && data.chats.length > 0) {
           const chat = data.chats[0];
           setChatActivo(chat);
-
           setChats((prev) => {
             const existe = prev.some((c) => c.id === chat.id);
             if (existe) return prev;
             return [chat, ...prev];
           });
-
           setSearchParams({});
         }
       } catch (err) {
         setError(err.message);
       }
     };
-
     abrirChatConUsuario();
   }, [searchParams, user, token, setSearchParams]);
 
   // =============================================
-  // CARGAR MENSAJES DEL CHAT ACTIVO
+  // CARGAR MENSAJES
   // =============================================
   useEffect(() => {
     if (!chatActivo || !socket) return;
@@ -144,7 +185,6 @@ const ChatsPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
-
         if (!response.ok) throw new Error(data.error || 'Error al cargar mensajes');
 
         setMensajes(data.mensajes || []);
@@ -165,12 +205,11 @@ const ChatsPage = () => {
         setLoadingMensajes(false);
       }
     };
-
     cargarMensajes();
   }, [chatActivo, socket, user, token]);
 
   // =============================================
-  // SCROLL AL FINAL
+  // SCROLL AUTOMÁTICO
   // =============================================
   useEffect(() => {
     mensajesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -184,16 +223,13 @@ const ChatsPage = () => {
 
     const handleNuevoMensaje = (data) => {
       const { mensaje } = data;
-
       if (chatActivo && mensaje.chat_id === chatActivo.id) {
         setMensajes((prev) => [...prev, mensaje]);
-
         socket.emit('mark-conversation-read', {
           miBoleta: user.boleta,
           otroUsuarioId: chatActivo.otro_usuario.boleta,
         });
       }
-
       setChats((prev) =>
         prev.map((c) =>
           c.id === mensaje.chat_id
@@ -209,7 +245,6 @@ const ChatsPage = () => {
             : c
         )
       );
-
       setUsuarioEscribiendo(false);
     };
 
@@ -233,7 +268,6 @@ const ChatsPage = () => {
     };
 
     const handleMessageError = (data) => {
-      console.error('Error al enviar mensaje:', data.error);
       setError(data.error);
     };
 
@@ -255,29 +289,118 @@ const ChatsPage = () => {
   // =============================================
   const handleEnviarMensaje = (e) => {
     e.preventDefault();
-
     if (!nuevoMensaje.trim() || !chatActivo || !socket) return;
 
-    const roomId = [user.boleta, chatActivo.otro_usuario.boleta]
-      .sort()
-      .join('-');
-
+    const roomId = [user.boleta, chatActivo.otro_usuario.boleta].sort().join('-');
     socket.emit('send-private-message', {
       emisorId: user.boleta,
       receptorId: chatActivo.otro_usuario.boleta,
       contenido: nuevoMensaje.trim(),
       roomId,
     });
-
     setNuevoMensaje('');
   };
 
   // =============================================
-  // SELECCIONAR CHAT
+  // ELIMINAR CHAT
   // =============================================
-  const handleSeleccionarChat = (chat) => {
-    setChatActivo(chat);
-    setUsuarioEscribiendo(false);
+  const handleEliminarChat = async () => {
+    if (!chatEliminar) return;
+    setEliminarChatLoading(true);
+    try {
+      const response = await fetch(`/api/chat/${chatEliminar.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al eliminar chat');
+
+      setChats((prev) => prev.filter((c) => c.id !== chatEliminar.id));
+      if (chatActivo?.id === chatEliminar.id) {
+        setChatActivo(null);
+        setMensajes([]);
+      }
+      setShowEliminarChatModal(false);
+      setChatEliminar(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEliminarChatLoading(false);
+    }
+  };
+
+  // =============================================
+  // EDITAR MENSAJE
+  // =============================================
+  const handleEditarMensaje = async () => {
+    if (!contenidoEditar || contenidoEditar.trim().length === 0) {
+      setEditarMensajeError('El mensaje no puede estar vacío.');
+      return;
+    }
+
+    // Si no cambió, cerrar sin error
+    if (contenidoEditar.trim() === mensajeEditar.contenido.trim()) {
+      setShowEditarMensajeModal(false);
+      setMensajeEditar(null);
+      setContenidoEditar('');
+      setEditarMensajeError('');
+      return;
+    }
+
+    setEditarMensajeLoading(true);
+    setEditarMensajeError('');
+
+    try {
+      const response = await fetch(`/api/chat/mensajes/${mensajeEditar.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ contenido: contenidoEditar.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al editar mensaje');
+
+      setMensajes((prev) =>
+        prev.map((m) =>
+          m.id === mensajeEditar.id
+            ? { ...m, contenido: contenidoEditar.trim(), editado: true }
+            : m
+        )
+      );
+      setShowEditarMensajeModal(false);
+      setMensajeEditar(null);
+      setContenidoEditar('');
+    } catch (err) {
+      setEditarMensajeError(err.message);
+    } finally {
+      setEditarMensajeLoading(false);
+    }
+  };
+
+  // =============================================
+  // ELIMINAR MENSAJE
+  // =============================================
+  const handleEliminarMensaje = async () => {
+    if (!mensajeEliminar) return;
+    setEliminarMensajeLoading(true);
+    try {
+      const response = await fetch(`/api/chat/mensajes/${mensajeEliminar.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al eliminar mensaje');
+
+      setMensajes((prev) => prev.filter((m) => m.id !== mensajeEliminar.id));
+      setShowEliminarMensajeModal(false);
+      setMensajeEliminar(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEliminarMensajeLoading(false);
+    }
   };
 
   // =============================================
@@ -286,22 +409,16 @@ const ChatsPage = () => {
   return (
     <AppLayout>
       <div className="chats-container">
-
-        {/* ✅ Banner de error */}
         {error && (
           <div className="chats-error-banner">
             <span>⚠️ {error}</span>
-            <button
-              type="button"
-              onClick={() => setError('')}
-              aria-label="Cerrar"
-            >
-              ×
-            </button>
+            <button type="button" onClick={() => setError('')} aria-label="Cerrar">×</button>
           </div>
         )}
 
-        {/* LISTA */}
+        {/* ============================================= */}
+        {/* LISTA DE CHATS */}
+        {/* ============================================= */}
         <aside className="chats-lista">
           <div className="chats-lista-header">
             <h2>Chats</h2>
@@ -325,71 +442,101 @@ const ChatsPage = () => {
           {!loadingChats && chats.length > 0 && (
             <div className="chats-lista-items">
               {chats.map((chat) => (
-                <button
-                  key={chat.id}
-                  className={`chat-item ${
-                    chatActivo?.id === chat.id ? 'activo' : ''
-                  }`}
-                  onClick={() => handleSeleccionarChat(chat)}
-                >
-                  <div className="chat-item-avatar-wrapper">
-                    {chat.otro_usuario.avatar_url ? (
-                      <img
-                        src={chat.otro_usuario.avatar_url}
-                        alt={chat.otro_usuario.nombre}
-                        className="chat-item-avatar"
-                      />
-                    ) : (
-                      <div
-                        className="chat-item-avatar chat-item-avatar-initials"
-                        style={{
-                          backgroundColor: getColorAvatar(
-                            chat.otro_usuario.nombre
-                          ),
+                <ContextMenu.Root key={chat.id}>
+                  <ContextMenu.Trigger
+                    render={(props) => (
+                      <button
+                        {...props}
+                        className={`chat-item ${chatActivo?.id === chat.id ? 'activo' : ''}`}
+                        onClick={() => {
+                          setChatActivo(chat);
+                          setUsuarioEscribiendo(false);
                         }}
                       >
-                        {getIniciales(chat.otro_usuario.nombre)}
-                      </div>
-                    )}
-                    {chat.no_leidos > 0 && (
-                      <span className="chat-item-badge">{chat.no_leidos}</span>
-                    )}
-                  </div>
+                        <div className="chat-item-avatar-wrapper">
+                          {chat.otro_usuario.avatar_url ? (
+                            <img
+                              src={chat.otro_usuario.avatar_url}
+                              alt={chat.otro_usuario.nombre}
+                              className="chat-item-avatar"
+                            />
+                          ) : (
+                            <div
+                              className="chat-item-avatar chat-item-avatar-initials"
+                              style={{ backgroundColor: getColorAvatar(chat.otro_usuario.nombre) }}
+                            >
+                              {getIniciales(chat.otro_usuario.nombre)}
+                            </div>
+                          )}
+                          {chat.no_leidos > 0 && (
+                            <span className="chat-item-badge">{chat.no_leidos}</span>
+                          )}
+                        </div>
 
-                  <div className="chat-item-info">
-                    <div className="chat-item-top">
-                      <h3 className="chat-item-nombre">
-                        {chat.otro_usuario.nombre}
-                      </h3>
-                      <span className="chat-item-hora">
-                        {formatearHora(chat.ultima_fecha)}
-                      </span>
-                    </div>
-                    <p className="chat-item-ultimo">{chat.ultimo_mensaje}</p>
-                  </div>
-                </button>
+                        <div className="chat-item-info">
+                          <div className="chat-item-top">
+                            <h3 className="chat-item-nombre">{chat.otro_usuario.nombre}</h3>
+                            <span className="chat-item-hora">{formatearHora(chat.ultima_fecha)}</span>
+                          </div>
+                          <p className="chat-item-ultimo">{chat.ultimo_mensaje}</p>
+                        </div>
+                      </button>
+                    )}
+                  />
+
+                  <ContextMenu.Portal>
+                    <ContextMenu.Positioner>
+                      <ContextMenu.Popup
+                        render={(props) => (
+                          <motion.div
+                            {...props}
+                            className="context-menu-popup"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                          >
+                            <ContextMenu.Item
+                              className="context-menu-item context-menu-item-danger"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setChatEliminar(chat);
+                                setShowEliminarChatModal(true);
+                              }}
+                            >
+                              Eliminar chat
+                            </ContextMenu.Item>
+                          </motion.div>
+                        )}
+                      />
+                    </ContextMenu.Positioner>
+                  </ContextMenu.Portal>
+                </ContextMenu.Root>
               ))}
             </div>
           )}
         </aside>
 
+        {/* ============================================= */}
         {/* CONVERSACIÓN */}
+        {/* ============================================= */}
         <section className="chats-conversacion">
           {!chatActivo ? (
             <div className="chats-sin-seleccion">
               <motion.img
-              src={iconMensaje}
-              alt="Chat"
-              className="Chats-sin-seleccion-icon"
-              animate={{
-                y:[0,-10,0],
-                scale:[1,1.05,1],
-              }}
-              transition={{
-                duration: 2.5,
-                repetat: Infinity,
-                ease: 'easeInOut',
-              }}
+                src={iconMensaje}
+                alt="Chat"
+                className="chats-sin-seleccion-icon"
+                animate={{
+                  y: [0, -12, 0],
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
               />
               <h2>Selecciona una conversación</h2>
               <p>Elige un chat de la lista para empezar a conversar.</p>
@@ -406,11 +553,7 @@ const ChatsPage = () => {
                 ) : (
                   <div
                     className="chats-conversacion-avatar chats-conversacion-avatar-initials"
-                    style={{
-                      backgroundColor: getColorAvatar(
-                        chatActivo.otro_usuario.nombre
-                      ),
-                    }}
+                    style={{ backgroundColor: getColorAvatar(chatActivo.otro_usuario.nombre) }}
                   >
                     {getIniciales(chatActivo.otro_usuario.nombre)}
                   </div>
@@ -442,17 +585,75 @@ const ChatsPage = () => {
                           esMio ? 'chat-mensaje-propio' : 'chat-mensaje-otro'
                         }`}
                       >
-                        <div className="chat-mensaje-burbuja">
-                          <p className="chat-mensaje-texto">{msg.contenido}</p>
-                          <span className="chat-mensaje-hora">
-                            {formatearHoraMensaje(msg.created_at)}
-                            {esMio && (
-                              <span className="chat-mensaje-check">
-                                {msg.leido ? '✓✓' : '✓'}
-                              </span>
-                            )}
-                          </span>
-                        </div>
+                        {esMio ? (
+                          <ContextMenu.Root>
+                            <ContextMenu.Trigger
+                              render={(props) => (
+                                <div {...props} className="chat-mensaje-burbuja">
+                                  <p className="chat-mensaje-texto">{msg.contenido}</p>
+                                  <span className="chat-mensaje-hora">
+                                    {msg.editado && (
+                                      <span className="chat-mensaje-editado">editado</span>
+                                    )}
+                                    {formatearHoraMensaje(msg.created_at)}
+                                    <span className="chat-mensaje-check">
+                                      {msg.leido ? '✓✓' : '✓'}
+                                    </span>
+                                  </span>
+                                </div>
+                              )}
+                            />
+
+                            <ContextMenu.Portal>
+                              <ContextMenu.Positioner>
+                                <ContextMenu.Popup
+                                  render={(props) => (
+                                    <motion.div
+                                      {...props}
+                                      className="context-menu-popup"
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.95 }}
+                                      transition={{ duration: 0.15, ease: 'easeOut' }}
+                                    >
+                                      <ContextMenu.Item
+                                        className="context-menu-item"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setMensajeEditar(msg);
+                                          setContenidoEditar(msg.contenido);
+                                          setEditarMensajeError('');
+                                          setShowEditarMensajeModal(true);
+                                        }}
+                                      >
+                                        Editar
+                                      </ContextMenu.Item>
+                                      <ContextMenu.Item
+                                        className="context-menu-item context-menu-item-danger"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setMensajeEliminar(msg);
+                                          setShowEliminarMensajeModal(true);
+                                        }}
+                                      >
+                                        Eliminar
+                                      </ContextMenu.Item>
+                                    </motion.div>
+                                  )}
+                                />
+                              </ContextMenu.Positioner>
+                            </ContextMenu.Portal>
+                          </ContextMenu.Root>
+                        ) : (
+                          <div className="chat-mensaje-burbuja">
+                            <p className="chat-mensaje-texto">{msg.contenido}</p>
+                            <span className="chat-mensaje-hora">
+                              {formatearHoraMensaje(msg.created_at)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -468,11 +669,7 @@ const ChatsPage = () => {
                   onChange={(e) => setNuevoMensaje(e.target.value)}
                   autoComplete="off"
                 />
-                <button
-                  type="submit"
-                  disabled={!nuevoMensaje.trim()}
-                  aria-label="Enviar mensaje"
-                >
+                <button type="submit" disabled={!nuevoMensaje.trim()} aria-label="Enviar mensaje">
                   ➤
                 </button>
               </form>
@@ -480,6 +677,131 @@ const ChatsPage = () => {
           )}
         </section>
       </div>
+
+      {/* ============================================= */}
+      {/* MODAL ELIMINAR CHAT */}
+      {/* ============================================= */}
+      <Modal
+        show={showEliminarChatModal}
+        onHide={() => {
+          setShowEliminarChatModal(false);
+          setChatEliminar(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title style={{ color: '#c0392b' }}>¿Eliminar esta conversación?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Se eliminará la conversación con <strong>{chatEliminar?.otro_usuario?.nombre}</strong>.</p>
+          <p>Todos los mensajes serán eliminados permanentemente. <strong>Esta acción no se puede deshacer.</strong></p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="outline-secondary"
+            onClick={() => {
+              setShowEliminarChatModal(false);
+              setChatEliminar(null);
+            }}
+            disabled={eliminarChatLoading}
+          >
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={handleEliminarChat} disabled={eliminarChatLoading}>
+            {eliminarChatLoading ? 'Eliminando...' : 'Eliminar chat'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ============================================= */}
+      {/* MODAL EDITAR MENSAJE */}
+      {/* ============================================= */}
+      <Modal
+        show={showEditarMensajeModal}
+        onHide={() => {
+          setShowEditarMensajeModal(false);
+          setMensajeEditar(null);
+          setContenidoEditar('');
+          setEditarMensajeError('');
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title style={{ color: '#1a237e' }}>Editar mensaje</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={contenidoEditar}
+              onChange={(e) => setContenidoEditar(e.target.value)}
+              maxLength={500}
+              disabled={editarMensajeLoading}
+            />
+            <small className="config-hint">{contenidoEditar.length}/500</small>
+          </Form.Group>
+          {editarMensajeError && <p className="config-error mt-2">{editarMensajeError}</p>}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="outline-secondary"
+            onClick={() => {
+              setShowEditarMensajeModal(false);
+              setMensajeEditar(null);
+              setContenidoEditar('');
+            }}
+            disabled={editarMensajeLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            className="hero-btn-primary"
+            onClick={handleEditarMensaje}
+            disabled={editarMensajeLoading || !contenidoEditar.trim()}
+          >
+            {editarMensajeLoading ? 'Guardando...' : 'Guardar cambios'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ============================================= */}
+      {/* MODAL ELIMINAR MENSAJE */}
+      {/* ============================================= */}
+      <Modal
+        show={showEliminarMensajeModal}
+        onHide={() => {
+          setShowEliminarMensajeModal(false);
+          setMensajeEliminar(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title style={{ color: '#c0392b' }}>¿Eliminar este mensaje?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Se eliminará el mensaje:</p>
+          <p style={{ fontWeight: 600, color: '#1a237e' }}>
+            "{mensajeEliminar?.contenido}"
+          </p>
+          <p><strong>Esta acción no se puede deshacer.</strong></p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="outline-secondary"
+            onClick={() => {
+              setShowEliminarMensajeModal(false);
+              setMensajeEliminar(null);
+            }}
+            disabled={eliminarMensajeLoading}
+          >
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={handleEliminarMensaje} disabled={eliminarMensajeLoading}>
+            {eliminarMensajeLoading ? 'Eliminando...' : 'Eliminar mensaje'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </AppLayout>
   );
 };

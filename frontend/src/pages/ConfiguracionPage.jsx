@@ -1,8 +1,10 @@
+// frontend/src/pages/ConfiguracionPage.jsx
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Modal } from 'react-bootstrap';
 import AppLayout from '../components/layout/AppLayout';
 import { useAuth } from '../hooks/useAuth';
+import AnimatedTabs from '../components/common/AnimatedTabs';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -280,231 +282,222 @@ const ConfiguracionPage = () => {
 
   const tieneAvatar = user?.avatar_url;
 
+  const tabs = [
+    { value: 'perfil', label: 'Perfil' },
+    { value: 'password', label: 'Contraseña' },
+    { value: 'cuenta', label: 'Cuenta' },
+  ];
+
   return (
     <AppLayout>
       <div className="config-container">
         <h1 className="config-title">Configuración</h1>
         <p className="config-subtitle">Administra tu cuenta y preferencias</p>
 
-        {/* ===== TABS ===== */}
-        <div className="config-tabs">
-          <button
-            className={`config-tab ${tab === 'perfil' ? 'active' : ''}`}
-            onClick={() => setTab('perfil')}
-          >
-            Perfil
-          </button>
-          <button
-            className={`config-tab ${tab === 'password' ? 'active' : ''}`}
-            onClick={() => setTab('password')}
-          >
-            Contraseña
-          </button>
-          <button
-            className={`config-tab ${tab === 'cuenta' ? 'active' : ''}`}
-            onClick={() => setTab('cuenta')}
-          >
-            Cuenta
-          </button>
-        </div>
+        {/* ===== TABS ANIMADOS ===== */}
+        <AnimatedTabs
+          tabs={tabs}
+          activeTab={tab}
+          onTabChange={setTab}
+        >
+          {/* ===== TAB: PERFIL ===== */}
+          {tab === 'perfil' && (
+            <div className="config-section">
+              {/* Avatar */}
+              <div className="config-card">
+                <h2 className="config-card-title">Foto de perfil</h2>
+                <p className="config-card-desc">
+                  Esta imagen será visible para otros usuarios.
+                </p>
 
-        {/* ===== TAB: PERFIL ===== */}
-        {tab === 'perfil' && (
-          <div className="config-section">
-            {/* Avatar */}
-            <div className="config-card">
-              <h2 className="config-card-title">Foto de perfil</h2>
-              <p className="config-card-desc">
-                Esta imagen será visible para otros usuarios.
-              </p>
+                <div className="config-avatar-row">
+                  <div className="config-avatar-preview">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Vista previa"
+                        className="config-avatar-img"
+                      />
+                    ) : tieneAvatar ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.nombre_usuario || user.nombre}
+                        className="config-avatar-img"
+                      />
+                    ) : (
+                      <div
+                        className="config-avatar-img config-avatar-initials"
+                        style={{ backgroundColor: getColorAvatar(user?.nombre_usuario || user?.nombre) }}
+                      >
+                        {getIniciales(user?.nombre_usuario || user?.nombre)}
+                      </div>
+                    )}
+                  </div>
 
-              <div className="config-avatar-row">
-                <div className="config-avatar-preview">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Vista previa"
-                      className="config-avatar-img"
+                  <div className="config-avatar-actions">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleAvatarChange}
+                      style={{ display: 'none' }}
                     />
-                  ) : tieneAvatar ? (
-                    <img
-                      src={user.avatar_url}
-                      alt={user.nombre_usuario || user.nombre}
-                      className="config-avatar-img"
-                    />
-                  ) : (
-                    <div
-                      className="config-avatar-img config-avatar-initials"
-                      style={{ backgroundColor: getColorAvatar(user?.nombre_usuario || user?.nombre) }}
+                    <Button
+                      variant="outline-primary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={avatarLoading}
                     >
-                      {getIniciales(user?.nombre_usuario || user?.nombre)}
-                    </div>
-                  )}
+                      Seleccionar imagen
+                    </Button>
+
+                    {avatarFile && (
+                      <>
+                        <Button
+                          className="hero-btn-primary"
+                          onClick={handleSubirAvatar}
+                          disabled={avatarLoading}
+                        >
+                          {avatarLoading ? 'Subiendo...' : 'Guardar avatar'}
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          onClick={handleCancelarAvatar}
+                          disabled={avatarLoading}
+                        >
+                          Cancelar
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                <div className="config-avatar-actions">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    onChange={handleAvatarChange}
-                    style={{ display: 'none' }}
-                  />
-                  <Button
-                    variant="outline-primary"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={avatarLoading}
-                  >
-                    Seleccionar imagen
-                  </Button>
+                <small className="config-hint">
+                  Formatos: JPG, PNG. Tamaño máximo: 5 MB.
+                </small>
 
-                  {avatarFile && (
-                    <>
-                      <Button
-                        className="hero-btn-primary"
-                        onClick={handleSubirAvatar}
-                        disabled={avatarLoading}
-                      >
-                        {avatarLoading ? 'Subiendo...' : 'Guardar avatar'}
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        onClick={handleCancelarAvatar}
-                        disabled={avatarLoading}
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  )}
-                </div>
+                {avatarError && <p className="config-error">{avatarError}</p>}
+                {avatarExito && <p className="config-exito">{avatarExito}</p>}
               </div>
 
-              <small className="config-hint">
-                Formatos: JPG, PNG. Tamaño máximo: 5 MB.
-              </small>
+              {/* Biografía */}
+              <div className="config-card">
+                <h2 className="config-card-title">Biografía</h2>
+                <p className="config-card-desc">
+                  Cuéntale a otros usuarios sobre ti. Máximo 200 caracteres.
+                </p>
 
-              {avatarError && <p className="config-error">{avatarError}</p>}
-              {avatarExito && <p className="config-exito">{avatarExito}</p>}
+                <Form onSubmit={handleGuardarBio}>
+                  <Form.Group className="mb-3">
+                    <Form.Control
+                      as="textarea"
+                      rows={4}
+                      maxLength={200}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Ej: Estudiante de ESCOM de ISC, apasionado por el desarrollo web..."
+                      disabled={bioLoading}
+                    />
+                    <small className="config-hint">
+                      {bio.length}/200 caracteres
+                    </small>
+                  </Form.Group>
+
+                  {bioError && <p className="config-error">{bioError}</p>}
+                  {bioExito && <p className="config-exito">{bioExito}</p>}
+
+                  <Button
+                    type="submit"
+                    className="hero-btn-primary"
+                    disabled={bioLoading || bio === (user?.bio || '')}
+                  >
+                    {bioLoading ? 'Guardando...' : 'Guardar biografía'}
+                  </Button>
+                </Form>
+              </div>
             </div>
+          )}
 
-            {/* Biografía */}
-            <div className="config-card">
-              <h2 className="config-card-title">Biografía</h2>
-              <p className="config-card-desc">
-                Cuéntale a otros usuarios sobre ti. Máximo 200 caracteres.
-              </p>
+          {/* ===== TAB: CONTRASEÑA ===== */}
+          {tab === 'password' && (
+            <div className="config-section">
+              <div className="config-card">
+                <h2 className="config-card-title">Cambiar contraseña</h2>
+                <p className="config-card-desc">
+                  Por seguridad, te recomendamos cambiar tu contraseña periódicamente.
+                </p>
 
-              <Form onSubmit={handleGuardarBio}>
-                <Form.Group className="mb-3">
-                  <Form.Control
-                    as="textarea"
-                    rows={4}
-                    maxLength={200}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ej: Estudiante de ESCOM de ISC, apasionado por el desarrollo web..."
-                    disabled={bioLoading}
-                  />
-                  <small className="config-hint">
-                    {bio.length}/200 caracteres
-                  </small>
-                </Form.Group>
+                <Form onSubmit={handleCambiarPassword}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Contraseña actual</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={password_actual}
+                      onChange={(e) => setPasswordActual(e.target.value)}
+                      disabled={passwordLoading}
+                      placeholder="Ingresa tu contraseña actual"
+                    />
+                  </Form.Group>
 
-                {bioError && <p className="config-error">{bioError}</p>}
-                {bioExito && <p className="config-exito">{bioExito}</p>}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Nueva contraseña</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={nueva_password}
+                      onChange={(e) => setPasswordNueva(e.target.value)}
+                      disabled={passwordLoading}
+                      placeholder="Mínimo 8 caracteres"
+                    />
+                    <small className="config-hint">
+                      Mínimo 8 caracteres, con mayúsculas, minúsculas, números y un carácter especial.
+                    </small>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirmar nueva contraseña</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={confirm_password}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                      disabled={passwordLoading}
+                      placeholder="Repite tu nueva contraseña"
+                    />
+                  </Form.Group>
+
+                  {passwordError && <p className="config-error">{passwordError}</p>}
+                  {passwordExito && <p className="config-exito">{passwordExito}</p>}
+
+                  <Button
+                    type="submit"
+                    className="hero-btn-primary"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading ? 'Cambiando...' : 'Cambiar contraseña'}
+                  </Button>
+                </Form>
+              </div>
+            </div>
+          )}
+
+          {/* ===== TAB: CUENTA ===== */}
+          {tab === 'cuenta' && (
+            <div className="config-section">
+              <div className="config-card config-card-danger">
+                <h2 className="config-card-title">Eliminar cuenta</h2>
+                <p className="config-card-desc">
+                  Esta acción es <strong>permanente</strong>. Se eliminarán todos tus datos:
+                  videos, materiales, comentarios, mensajes y tu perfil.
+                </p>
 
                 <Button
-                  type="submit"
-                  className="hero-btn-primary"
-                  disabled={bioLoading || bio === (user?.bio || '')}
+                  variant="danger"
+                  onClick={() => setShowEliminarModal(true)}
                 >
-                  {bioLoading ? 'Guardando...' : 'Guardar biografía'}
+                  Eliminar mi cuenta
                 </Button>
-              </Form>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* ===== TAB: CONTRASEÑA ===== */}
-        {tab === 'password' && (
-          <div className="config-section">
-            <div className="config-card">
-              <h2 className="config-card-title">Cambiar contraseña</h2>
-              <p className="config-card-desc">
-                Por seguridad, te recomendamos cambiar tu contraseña periódicamente.
-              </p>
-
-              <Form onSubmit={handleCambiarPassword}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Contraseña actual</Form.Label>
-                  <Form.Control
-                    type="password"
-                    value={password_actual}
-                    onChange={(e) => setPasswordActual(e.target.value)}
-                    disabled={passwordLoading}
-                    placeholder="Ingresa tu contraseña actual"
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Nueva contraseña</Form.Label>
-                  <Form.Control
-                    type="password"
-                    value={nueva_password}
-                    onChange={(e) => setPasswordNueva(e.target.value)}
-                    disabled={passwordLoading}
-                    placeholder="Mínimo 8 caracteres"
-                  />
-                  <small className="config-hint">
-                    Mínimo 8 caracteres, con mayúsculas, minúsculas, números y un carácter especial.
-                  </small>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Confirmar nueva contraseña</Form.Label>
-                  <Form.Control
-                    type="password"
-                    value={confirm_password}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
-                    disabled={passwordLoading}
-                    placeholder="Repite tu nueva contraseña"
-                  />
-                </Form.Group>
-
-                {passwordError && <p className="config-error">{passwordError}</p>}
-                {passwordExito && <p className="config-exito">{passwordExito}</p>}
-
-                <Button
-                  type="submit"
-                  className="hero-btn-primary"
-                  disabled={passwordLoading}
-                >
-                  {passwordLoading ? 'Cambiando...' : 'Cambiar contraseña'}
-                </Button>
-              </Form>
-            </div>
-          </div>
-        )}
-
-        {/* ===== TAB: CUENTA ===== */}
-        {tab === 'cuenta' && (
-          <div className="config-section">
-            <div className="config-card config-card-danger">
-              <h2 className="config-card-title">Eliminar cuenta</h2>
-              <p className="config-card-desc">
-                Esta acción es <strong>permanente</strong>. Se eliminarán todos tus datos:
-                videos, materiales, comentarios, mensajes y tu perfil.
-              </p>
-
-              <Button
-                variant="danger"
-                onClick={() => setShowEliminarModal(true)}
-              >
-                Eliminar mi cuenta
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+        </AnimatedTabs>
       </div>
 
       {/* ===== MODAL DE CONFIRMACIÓN ===== */}

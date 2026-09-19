@@ -23,27 +23,34 @@
 }
 
 /* ============================================= */
-/* TABS DE NAVEGACIÓN                            */
+/* TABS ANIMADOS (Base UI + Motion)              */
 /* ============================================= */
 
-.config-tabs {
+.config-tabs-list {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
+  position: relative;
+  background: #f1f3f5;
+  border-radius: 12px;
+  padding: 4px;
   margin-bottom: 2rem;
+  gap: 2px;
 }
 
 .config-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
   padding: 0.75rem 1.25rem;
-  background: none;
   border: none;
+  background: none;
+  cursor: pointer;
+  color: #666;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #999;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s ease;
   font-family: inherit;
+  border-radius: 8px;
+  transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .config-tab:hover {
@@ -54,15 +61,18 @@
   color: #1a237e;
 }
 
-.config-tab.active::after {
-  content: '';
+/* Indicador animado que se desliza entre tabs */
+.config-tab-indicator {
   position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--peony-pink);
-  border-radius: 2px 2px 0 0;
+  inset: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: -1;
+}
+
+.config-tab-content {
+  width: 100%;
 }
 
 /* ============================================= */
@@ -273,13 +283,12 @@
     padding: 1.25rem 1.25rem;
   }
 
-  .config-tabs {
+  .config-tabs-list {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .config-tab {
-    white-space: nowrap;
     padding: 0.7rem 1rem;
     font-size: 0.9rem;
   }
